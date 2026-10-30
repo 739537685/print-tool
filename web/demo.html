@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印助手 · 接入测试台</title>
+<style>
+  :root {
+    --ink: #1c1917;
+    --muted: #78716c;
+    --line: #e7e5e4;
+    --paper: #faf8f5;
+    --card: #ffffff;
+    --accent: #0f766e;
+    --accent-soft: #ccfbf1;
+    --warn: #b45309;
+    --warn-soft: #fef3c7;
+    --bad: #b91c1c;
+    --bad-soft: #fee2e2;
+    --good: #15803d;
+    --good-soft: #dcfce7;
+    --mono: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--ink);
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(rgba(28, 25, 23, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(28, 25, 23, 0.035) 1px, transparent 1px);
+    background-size: 28px 28px;
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 36px 24px 20px;
+  }
+
+  .title-block h1 {
+    margin: 0;
+    font-size: clamp(24px, 3.4vw, 36px);
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+  }
+
+  .title-block p {
+    margin: 8px 0 0;
+    max-width: 52ch;
+    color: var(--muted);
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 16px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--card);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .status-pill .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--muted);
+    box-shadow: 0 0 0 4px rgba(120, 113, 108, 0.12);
+  }
+
+  .status-pill[data-state="connected"] .dot { background: var(--good); box-shadow: 0 0 0 4px var(--good-soft); }
+  .status-pill[data-state="unpaired"] .dot { background: var(--warn); box-shadow: 0 0 0 4px var(--warn-soft); }
+  .status-pill[data-state="error"] .dot { background: var(--bad); box-shadow: 0 0 0 4px var(--bad-soft); }
+  .status-pill[data-state="reconnecting"] .dot,
+  .status-pill[data-state="connecting"] .dot { background: var(--accent); animation: pulse 1.1s ease-in-out infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+  }
+
+  main {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: 20px;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px 48px;
+  }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--card);
+    padding: 24px;
+    box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
+  }
+
+  .card h2 {
+    margin: 0 0 4px;
+    font-size: 15px;
+    letter-spacing: 0.01em;
+  }
+
+  .card .hint {
+    margin: 0 0 20px;
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+
+  .field {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .field label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .row.two {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  input, select, button {
+    font: inherit;
+    color: inherit;
+  }
+
+  input[type="text"],
+  input[type="password"],
+  input[type="number"],
+  select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    outline: none;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+  }
+
+  input[type="number"] { font-family: var(--mono); }
+
+  button {
+    padding: 10px 18px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: var(--ink);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 80ms ease, opacity 120ms ease, background 120ms ease;
+    white-space: nowrap;
+  }
+
+  button:hover { background: #292524; }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+  button.secondary {
+    background: #fff;
+    border-color: var(--line);
+    color: var(--ink);
+  }
+
+  button.secondary:hover { border-color: #d6d3d1; background: #fafaf9; }
+
+  button.primary {
+    background: var(--accent);
+  }
+
+  button.primary:hover { background: #115e59; }
+
+  .drop {
+    position: relative;
+    display: grid;
+    place-items: center;
+    gap: 6px;
+    padding: 26px 18px;
+    border: 1.5px dashed #d6d3d1;
+    border-radius: 12px;
+    background: #fcfbf9;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 120ms ease, background 120ms ease;
+  }
+
+  .drop:hover, .drop.dragging {
+    border-color: var(--accent);
+    background: #f0fdfa;
+  }
+
+  .drop strong { font-size: 13px; }
+
+  .drop span {
+    color: var(--muted);
+    font-size: 12px;
+    word-break: break-all;
+  }
+
+  .drop input { display: none; }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .meta {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #fcfbf9;
+  }
+
+  .meta b {
+    display: block;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .meta span {
+    color: var(--muted);
+    font-size: 11.5px;
+  }
+
+  .right-col {
+    display: grid;
+    gap: 20px;
+    align-content: start;
+  }
+
+  .preview-stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 320px;
+    padding: 18px;
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background-color: #f5f5f4;
+    background-image:
+      linear-gradient(45deg, rgba(28, 25, 23, 0.035) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(28, 25, 23, 0.035) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgba(28, 25, 23, 0.035) 75%),
+      linear-gradient(-45deg, transparent 75%, rgba(28, 25, 23, 0.035) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  }
+
+  .preview-stage img {
+    display: block;
+    max-width: 100%;
+    max-height: 460px;
+    background: #fff;
+    border: 1px solid #d6d3d1;
+    box-shadow: 0 10px 28px rgba(28, 25, 23, 0.14);
+  }
+
+  .preview-stage img[hidden] { display: none; }
+
+  .preview-empty {
+    max-width: 32ch;
+    color: var(--muted);
+    font-size: 12.5px;
+    text-align: center;
+  }
+
+  .preview-empty[hidden] { display: none; }
+
+  .preview-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .preview-toolbar .actions { margin-top: 0; }
+
+  .preview-meta {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11.5px;
+  }
+
+  .log {
+    height: 320px;
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #1c1917;
+    color: #e7e5e4;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.65;
+  }
+
+  .log p { margin: 0 0 4px; white-space: pre-wrap; word-break: break-word; }
+  .log p .time { color: #78716c; margin-right: 8px; }
+  .log .ok { color: #5eead4; }
+  .log .warn { color: #fcd34d; }
+  .log .bad { color: #fca5a5; }
+
+  .log:empty::before {
+    content: "等待操作…";
+    color: #57534e;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+
+  th {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  td.mono { font-family: var(--mono); font-size: 11.5px; }
+
+  .tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .tag.done { background: var(--good-soft); color: var(--good); }
+  .tag.failed { background: var(--bad-soft); color: var(--bad); }
+  .tag.printing, .tag.queued { background: var(--warn-soft); color: var(--warn); }
+
+  .empty {
+    padding: 24px 0;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  footer {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px 40px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  footer code {
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: #f5f5f4;
+    font-family: var(--mono);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-block">
+    <h1>打印助手 · 接入测试台</h1>
+    <p>连接本机打印助手，选择 PDF 电子面单，预览纸张与偏移效果，再验证配对、份数与回执。http 页面走 ws，https 页面自动走 wss。</p>
+  </div>
+  <div class="status-pill" id="status" data-state="connecting">
+    <span class="dot"></span>
+    <span id="status-text">连接中</span>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>连接与配对</h2>
+    <p class="hint">首次使用在助手托盘面板复制 6 位配对码；配对成功后 token 会保存在本机浏览器。</p>
+
+    <div class="field">
+      <label for="token">Token</label>
+      <div class="row">
+        <input type="text" id="token" placeholder="尚未配对" autocomplete="off" spellcheck="false">
+        <button class="secondary" id="save-token">保存</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="code">配对码</label>
+      <div class="row">
+        <input type="text" id="code" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="off">
+        <button class="primary" id="pair">配对</button>
+      </div>
+    </div>
+
+    <div class="meta-grid">
+      <div class="meta">
+        <b id="meta-url">—</b>
+        <span>连接地址</span>
+      </div>
+      <div class="meta">
+        <b id="meta-printers">0</b>
+        <span>可用打印机</span>
+      </div>
+      <div class="meta">
+        <b id="meta-version">—</b>
+        <span>助手版本</span>
+      </div>
+    </div>
+
+    <h2>打印任务</h2>
+    <p class="hint">PDF 通过 base64 传输，默认 100 × 150 mm、203 dpi，最多 10 页；选择文件或修改纸张后会刷新预览。</p>
+
+    <div class="field">
+      <label>PDF 文件</label>
+      <label class="drop" id="drop">
+        <strong>点击选择或拖入 PDF</strong>
+        <span id="file-name">尚未选择文件</span>
+        <input type="file" id="file" accept="application/pdf">
+      </label>
+    </div>
+
+    <div class="field">
+      <label for="printer">打印机</label>
+      <div class="row">
+        <select id="printer"></select>
+        <button class="secondary" id="refresh-printers">刷新</button>
+      </div>
+    </div>
+
+    <div class="row two">
+      <div class="field">
+        <label for="copies">份数</label>
+        <input type="number" id="copies" value="1" min="1" max="20">
+      </div>
+      <div class="field">
+        <label>纸张（毫米）</label>
+        <div class="row two">
+          <input type="number" id="width" value="100" min="11" max="300" step="0.1" aria-label="宽度毫米">
+          <input type="number" id="height" value="150" min="11" max="300" step="0.1" aria-label="高度毫米">
+        </div>
+      </div>
+    </div>
+
+    <div class="row two">
+      <div class="field">
+        <label for="offset-x">X 偏移（mm，留空默认）</label>
+        <input type="number" id="offset-x" placeholder="默认" min="-50" max="50" step="0.1">
+      </div>
+      <div class="field">
+        <label for="offset-y">Y 偏移（mm，留空默认）</label>
+        <input type="number" id="offset-y" placeholder="默认" min="-50" max="50" step="0.1">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="print" disabled>开始打印</button>
+      <button class="secondary" id="ping">Ping</button>
+      <button class="secondary" id="reconnect">重新连接</button>
+      <button class="secondary" id="clear-token">清除 Token</button>
+    </div>
+  </section>
+
+  <div class="right-col">
+    <section class="card">
+      <h2>打印预览</h2>
+      <p class="hint">按当前纸张和偏移模拟实际出纸，预览由助手在本地按 150 dpi 渲染。</p>
+      <div class="preview-stage" id="preview-stage">
+        <div class="preview-empty" id="preview-empty">选择 PDF 后自动生成预览</div>
+        <img id="preview-image" alt="打印预览" hidden>
+      </div>
+      <div class="preview-toolbar">
+        <span class="preview-meta" id="preview-meta">尚未生成</span>
+        <div class="actions">
+          <button class="secondary" id="preview-prev" disabled>上一页</button>
+          <button class="secondary" id="preview-next" disabled>下一页</button>
+          <button class="secondary" id="preview-refresh" disabled>刷新预览</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>运行日志</h2>
+      <p class="hint">回执状态、错误码与耗时都会显示在这里。</p>
+      <div class="log" id="log"></div>
+
+      <div class="actions" style="margin-bottom: 12px;">
+        <button class="secondary" id="refresh-history">查看历史</button>
+      </div>
+
+      <div id="history-wrap">
+        <div class="empty">尚未加载历史</div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  需要助手在本机运行并监听 <code>127.0.0.1:17800</code>（ws）与 <code>127.0.0.1:17801</code>（wss）。使用 <code>file://</code> 打开本页时同样可用。
+</footer>
+
+<script src="print-client.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var statusEl = $('status');
+  var statusText = $('status-text');
+  var tokenInput = $('token');
+  var logEl = $('log');
+  var fileInput = $('file');
+  var drop = $('drop');
+  var printerSelect = $('printer');
+  var printButton = $('print');
+  var previewButton = $('preview-refresh');
+  var previewPrev = $('preview-prev');
+  var previewNext = $('preview-next');
+  var previewImage = $('preview-image');
+  var previewEmpty = $('preview-empty');
+  var previewMeta = $('preview-meta');
+  var selectedFile = null;
+  var helperVersion = '—';
+  var printing = false;
+  var previewing = false;
+  var previewQueued = false;
+  var previewSeq = 0;
+  var previewTimer = null;
+  var previewPages = [];
+  var previewIndex = 0;
+  var lastPreview = null;
+
+  function log(message, kind) {
+    var p = document.createElement('p');
+    var time = document.createElement('span');
+    time.className = 'time';
+    time.textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    var text = document.createElement('span');
+    if (kind) { text.className = kind; }
+    text.textContent = message;
+    p.appendChild(time);
+    p.appendChild(text);
+    logEl.appendChild(p);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setStatus(state, text) {
+    statusEl.setAttribute('data-state', state);
+    statusText.textContent = text;
+  }
+
+  function formatMm(value) {
+    return String(Math.round(Number(value) * 10) / 10);
+  }
+
+  function readOptionalNumber(id) {
+    var raw = $(id).value.trim();
+    if (!raw) {
+      return undefined;
+    }
+    var value = Number(raw);
+    return Number.isFinite(value) ? value : undefined;
+  }
+
+  function readOffsets() {
+    return {
+      x: readOptionalNumber('offset-x'),
+      y: readOptionalNumber('offset-y')
+    };
+  }
+
+  function currentPaper() {
+    var width = parseFloat($('width').value);
+    var height = parseFloat($('height').value);
+    return {
+      widthMm: Math.min(300, Math.max(11, Number.isFinite(width) ? width : 100)),
+      heightMm: Math.min(300, Math.max(11, Number.isFinite(height) ? height : 150))
+    };
+  }
+
+  function showPreviewPlaceholder(text) {
+    previewImage.hidden = true;
+    previewEmpty.hidden = false;
+    previewEmpty.textContent = text;
+  }
+
+  function resetPreview(text) {
+    previewSeq++;
+    if (previewTimer) {
+      clearTimeout(previewTimer);
+      previewTimer = null;
+    }
+    previewQueued = false;
+    previewPages = [];
+    previewIndex = 0;
+    lastPreview = null;
+    previewImage.removeAttribute('src');
+    showPreviewPlaceholder(text || '选择 PDF 后自动生成预览');
+    previewMeta.textContent = '尚未生成';
+    updatePreviewButtons();
+  }
+
+  function updatePreviewMeta() {
+    if (!lastPreview) {
+      previewMeta.textContent = '尚未生成';
+      return;
+    }
+    var text = formatMm(lastPreview.paperWidthMm) + ' × ' + formatMm(lastPreview.paperHeightMm) +
+      ' mm · ' + lastPreview.dpi + ' dpi';
+    if (lastPreview.offsetXMm || lastPreview.offsetYMm) {
+      text += ' · 偏移 ' + formatMm(lastPreview.offsetXMm) + ' / ' + formatMm(lastPreview.offsetYMm) + ' mm';
+    }
+    if (previewPages.length) {
+      text += ' · 第 ' + (previewIndex + 1) + '/' + previewPages.length + ' 页';
+    }
+    previewMeta.textContent = text;
+  }
+
+  function renderPreviewPage() {
+    if (!previewPages.length) {
+      previewImage.hidden = true;
+      previewEmpty.hidden = false;
+      previewEmpty.textContent = 'PDF 没有可预览页面';
+      updatePreviewMeta();
+      updatePreviewButtons();
+      return;
+    }
+    previewImage.src = previewPages[previewIndex].dataUrl;
+    previewImage.hidden = false;
+    previewEmpty.hidden = true;
+    updatePreviewMeta();
+    updatePreviewButtons();
+  }
+
+  function updatePreviewButtons() {
+    var canPreview = !!selectedFile && client.isConnected();
+    previewButton.disabled = previewing || !canPreview;
+    previewPrev.disabled = previewing || previewIndex <= 0;
+    previewNext.disabled = previewing || previewIndex >= previewPages.length - 1;
+  }
+
+  function schedulePreview(delay) {
+    if (!selectedFile) {
+      return;
+    }
+    if (previewTimer) {
+      clearTimeout(previewTimer);
+    }
+    previewTimer = setTimeout(function () {
+      previewTimer = null;
+      requestPreview();
+    }, delay || 500);
+  }
+
+  function requestPreview() {
+    if (!selectedFile) {
+      resetPreview('选择 PDF 后自动生成预览');
+      return;
+    }
+    if (!client.isConnected()) {
+      showPreviewPlaceholder('配对后生成预览');
+      previewMeta.textContent = '尚未生成';
+      updatePreviewButtons();
+      return;
+    }
+    if (previewing) {
+      previewQueued = true;
+      return;
+    }
+
+    var paper = currentPaper();
+    var offsets = readOffsets();
+    var seq = ++previewSeq;
+    previewing = true;
+    showPreviewPlaceholder('预览生成中…');
+    previewMeta.textContent = '生成中…';
+    updatePreviewButtons();
+
+    client.preview({
+      pdf: selectedFile,
+      paper: paper,
+      offsetXMm: offsets.x,
+      offsetYMm: offsets.y
+    }).then(function (result) {
+      if (seq !== previewSeq) {
+        return;
+      }
+      lastPreview = result;
+      previewPages = result.pages || [];
+      previewIndex = 0;
+      renderPreviewPage();
+    }, function (error) {
+      if (seq !== previewSeq) {
+        return;
+      }
+      lastPreview = null;
+      previewPages = [];
+      previewIndex = 0;
+      previewImage.hidden = true;
+      previewImage.removeAttribute('src');
+      previewEmpty.hidden = false;
+      previewEmpty.textContent = '预览失败：' + (error.code ? error.code + ' ' : '') + error.message;
+      previewMeta.textContent = '预览失败';
+      log('预览失败：' + (error.code || '') + ' ' + error.message, 'bad');
+    }).then(function () {
+      previewing = false;
+      if (previewQueued) {
+        previewQueued = false;
+        requestPreview();
+        return;
+      }
+      updatePreviewButtons();
+    });
+  }
+
+  var client = PrintAssistant.createPrintClient({
+    name: 'demo',
+    onStatus: function (status, detail) {
+      if (status === 'connecting') {
+        setStatus('connecting', '连接中');
+      } else if (status === 'connected') {
+        setStatus('connected', '已连接');
+        if (detail.helperVersion) {
+          helperVersion = detail.helperVersion;
+          $('meta-version').textContent = helperVersion;
+        }
+        log('已连接，助手版本 ' + (detail.helperVersion || helperVersion) + '，token ' + (client.getToken() ? '有效' : '无'), 'ok');
+        tokenInput.value = client.getToken();
+        refreshPrinters();
+        if (selectedFile) {
+          schedulePreview(300);
+        }
+      } else if (status === 'unpaired') {
+        setStatus('unpaired', '待配对');
+        log('尚未配对' + (detail.message ? '：' + detail.message : ''), 'warn');
+        updatePreviewButtons();
+      } else if (status === 'disconnected') {
+        setStatus('error', '已断开');
+        log('连接已断开，正在等待重连', 'bad');
+        updatePreviewButtons();
+      } else if (status === 'reconnecting') {
+        setStatus('reconnecting', '重连中');
+        log('将在 ' + detail.delay + ' ms 后重试连接');
+      } else if (status === 'closed') {
+        setStatus('error', '已关闭');
+      } else if (status === 'result') {
+        var result = detail;
+        var ok = result.status === 'done';
+        log('打印回执 ' + result.taskId + '：' + result.status +
+            (result.pages != null ? '，' + result.pages + ' 页' : '') +
+            (result.ms != null ? '，' + result.ms + ' ms' : '') +
+            (result.error ? '，' + result.error + ' ' + (result.message || '') : ''),
+            ok ? 'ok' : 'bad');
+      } else if (status === 'server-error') {
+        log('服务端错误 ' + (detail.code || '') + '：' + (detail.message || ''), 'bad');
+      }
+    }
+  });
+
+  function refreshPrinters() {
+    return client.getPrinters().then(function (printers) {
+      var current = printerSelect.value;
+      printerSelect.innerHTML = '';
+      printers.forEach(function (printer) {
+        var option = document.createElement('option');
+        option.value = printer.name;
+        option.textContent = printer.name + (printer.isDefault ? '（默认）' : '') +
+          (printer.status === 'ready' ? '' : ' · ' + printer.status);
+        printerSelect.appendChild(option);
+      });
+      if (current && printers.some(function (p) { return p.name === current; })) {
+        printerSelect.value = current;
+      }
+      $('meta-printers').textContent = String(printers.length);
+      $('meta-url').textContent = client.url.replace(/^wss?:\/\//, '');
+      if (printers.length === 0) {
+        log('未发现打印机，请检查驱动是否安装', 'warn');
+      }
+      return printers;
+    }).catch(function (error) {
+      log('读取打印机失败：' + error.message, 'bad');
+      return [];
+    });
+  }
+
+  function refreshMeta() {
+    var snapshot = client.snapshot();
+    $('meta-url').textContent = snapshot.url.replace(/^wss?:\/\//, '');
+    $('meta-printers').textContent = String(snapshot.printers.length);
+    $('meta-version').textContent = snapshot.helperVersion || helperVersion;
+  }
+
+  function setSelectedFile(file) {
+    selectedFile = file || null;
+    $('file-name').textContent = file ? file.name + ' · ' + Math.round(file.size / 1024) + ' KB' : '尚未选择文件';
+    resetPreview(file ? '正在等待预览…' : '选择 PDF 后自动生成预览');
+    printButton.disabled = printing || !file || !client.isConnected();
+    if (file) {
+      schedulePreview(150);
+    }
+  }
+
+  fileInput.addEventListener('change', function () {
+    setSelectedFile(fileInput.files && fileInput.files[0]);
+  });
+
+  ['dragenter', 'dragover'].forEach(function (name) {
+    drop.addEventListener(name, function (event) {
+      event.preventDefault();
+      drop.classList.add('dragging');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(function (name) {
+    drop.addEventListener(name, function (event) {
+      event.preventDefault();
+      drop.classList.remove('dragging');
+    });
+  });
+
+  drop.addEventListener('drop', function (event) {
+    var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+    if (file && /\.pdf$/i.test(file.name)) {
+      setSelectedFile(file);
+    } else if (file) {
+      log('只支持 PDF 文件', 'warn');
+    }
+  });
+
+  ['width', 'height', 'offset-x', 'offset-y'].forEach(function (id) {
+    $(id).addEventListener('input', function () {
+      if (selectedFile) {
+        schedulePreview(500);
+      }
+    });
+  });
+
+  previewButton.addEventListener('click', requestPreview);
+
+  previewPrev.addEventListener('click', function () {
+    if (previewIndex > 0) {
+      previewIndex--;
+      renderPreviewPage();
+    }
+  });
+
+  previewNext.addEventListener('click', function () {
+    if (previewIndex < previewPages.length - 1) {
+      previewIndex++;
+      renderPreviewPage();
+    }
+  });
+
+  $('pair').addEventListener('click', function () {
+    var code = $('code').value.trim();
+    if (!/^\d{6}$/.test(code)) {
+      log('请输入 6 位配对码', 'warn');
+      return;
+    }
+    $('pair').disabled = true;
+    client.pair(code).then(function (result) {
+      tokenInput.value = result.token;
+      helperVersion = result.helperVersion || helperVersion;
+      $('meta-version').textContent = helperVersion;
+      $('code').value = '';
+      log('配对成功，token 已保存', 'ok');
+      return refreshPrinters();
+    }).catch(function (error) {
+      log('配对失败：' + (error.code || '') + ' ' + error.message, 'bad');
+    }).then(function () {
+      $('pair').disabled = false;
+      printButton.disabled = printing || !selectedFile || !client.isConnected();
+    });
+  });
+
+  $('save-token').addEventListener('click', function () {
+    client.setToken(tokenInput.value.trim());
+    log('token 已保存，正在重新连接');
+    client.reconnect().then(function () {
+      refreshPrinters();
+    }).catch(function (error) {
+      log('连接失败：' + error.message, 'bad');
+    });
+  });
+
+  $('clear-token').addEventListener('click', function () {
+    client.setToken('');
+    tokenInput.value = '';
+    log('token 已清除', 'warn');
+    client.reconnect().catch(function () {});
+  });
+
+  $('refresh-printers').addEventListener('click', refreshPrinters);
+
+  $('reconnect').addEventListener('click', function () {
+    log('手动重新连接');
+    client.reconnect().then(function () {
+      refreshPrinters();
+    }).catch(function (error) {
+      log('重连失败：' + error.message, 'bad');
+    });
+  });
+
+  $('ping').addEventListener('click', function () {
+    var started = performance.now();
+    client.ping().then(function () {
+      log('pong，往返 ' + Math.round(performance.now() - started) + ' ms', 'ok');
+    }).catch(function (error) {
+      log('ping 失败：' + error.message, 'bad');
+    });
+  });
+
+  printButton.addEventListener('click', function () {
+    if (!selectedFile || printing) {
+      return;
+    }
+    var copies = Math.max(1, Math.min(20, parseInt($('copies').value, 10) || 1));
+    var paper = currentPaper();
+    var offsets = readOffsets();
+    printing = true;
+    printButton.disabled = true;
+    log('提交打印：' + selectedFile.name + '，' + copies + ' 份，' +
+        formatMm(paper.widthMm) + '×' + formatMm(paper.heightMm) + ' mm' +
+        (offsets.x != null || offsets.y != null
+          ? '，偏移 ' + formatMm(offsets.x || 0) + ' / ' + formatMm(offsets.y || 0) + ' mm'
+          : ''));
+    client.print({
+      pdf: selectedFile,
+      printer: printerSelect.value || undefined,
+      copies: copies,
+      paper: paper,
+      offsetXMm: offsets.x,
+      offsetYMm: offsets.y
+    }).then(function (response) {
+      log('任务 ' + response.taskId + ' 已完成，耗时 ' +
+          (response.result && response.result.ms != null ? response.result.ms + ' ms' : '未知'), 'ok');
+    }).catch(function (error) {
+      log('打印失败：' + (error.code || '') + ' ' + error.message, 'bad');
+    }).then(function () {
+      printing = false;
+      printButton.disabled = !selectedFile || !client.isConnected();
+    });
+  });
+
+  $('refresh-history').addEventListener('click', function () {
+    client.getHistory(20).then(function (tasks) {
+      var wrap = $('history-wrap');
+      if (!tasks.length) {
+        wrap.innerHTML = '<div class="empty">暂无历史任务</div>';
+        return;
+      }
+      var table = document.createElement('table');
+      table.innerHTML = '<thead><tr><th>任务</th><th>状态</th><th>打印机</th><th>时间</th></tr></thead>';
+      var body = document.createElement('tbody');
+      tasks.forEach(function (task) {
+        var tr = document.createElement('tr');
+        var status = task.status === 'done' ? 'done' : task.status === 'failed' ? 'failed' : task.status === 'interrupted' ? 'failed' : 'printing';
+        tr.innerHTML =
+          '<td class="mono">' + task.taskId.slice(0, 8) + '</td>' +
+          '<td><span class="tag ' + status + '">' + task.status + '</span></td>' +
+          '<td>' + task.printer + '</td>' +
+          '<td class="mono">' + new Date(task.createdAt).toLocaleString('zh-CN') + '</td>';
+        body.appendChild(tr);
+      });
+      table.appendChild(body);
+      wrap.innerHTML = '';
+      wrap.appendChild(table);
+    }).catch(function (error) {
+      log('读取历史失败：' + error.message, 'bad');
+    });
+  });
+
+  setSelectedFile(null);
+  refreshMeta();
+  log('页面已加载，连接 ' + client.url);
+  client.connect().then(function () {
+    var snapshot = client.snapshot();
+    if (!snapshot.paired) {
+      log('尚无有效 token，请输入配对码', 'warn');
+    } else {
+      refreshPrinters();
+    }
+    printButton.disabled = printing || !selectedFile || !snapshot.paired;
+  }).catch(function (error) {
+    log('连接失败：' + error.message, 'bad');
+  });
+
+  setInterval(function () {
+    printButton.disabled = printing || !selectedFile || !client.isConnected();
+    updatePreviewButtons();
+  }, 1000);
+})();
+</script>
+</body>
+</html>

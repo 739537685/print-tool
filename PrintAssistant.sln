@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{D27291C0-B485-4D6E-A72D-648D4D3016B0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrintAssistant", "src\PrintAssistant\PrintAssistant.csproj", "{7672D4F3-C587-4659-810A-784D2B15994F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{2CB829D1-FE3C-46FA-A381-E7D35A8E5219}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrintAssistant.Tests", "tests\PrintAssistant.Tests\PrintAssistant.Tests.csproj", "{F940B7CF-09D8-494E-BBFC-61DA84ED27C4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7672D4F3-C587-4659-810A-784D2B15994F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7672D4F3-C587-4659-810A-784D2B15994F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7672D4F3-C587-4659-810A-784D2B15994F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7672D4F3-C587-4659-810A-784D2B15994F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F940B7CF-09D8-494E-BBFC-61DA84ED27C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F940B7CF-09D8-494E-BBFC-61DA84ED27C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F940B7CF-09D8-494E-BBFC-61DA84ED27C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F940B7CF-09D8-494E-BBFC-61DA84ED27C4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7672D4F3-C587-4659-810A-784D2B15994F} = {D27291C0-B485-4D6E-A72D-648D4D3016B0}
+		{F940B7CF-09D8-494E-BBFC-61DA84ED27C4} = {2CB829D1-FE3C-46FA-A381-E7D35A8E5219}
+	EndGlobalSection
+EndGlobal
